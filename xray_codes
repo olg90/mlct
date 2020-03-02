@@ -37,7 +37,9 @@ plt.show()
 plt.imshow(img, cmap = 'gray')
 plt.show()
 
-
+def def_args(**x):
+    #Function to define a dictionary of arguments without all the brackets
+    return x
 
 
 args = def_args(
@@ -104,25 +106,39 @@ def plot_examples(n_examples, images):
     count = 1
     for j in range(n_examples):
         for i,name in enumerate(images.keys()):
+
             plt.subplot(n_examples, len(images.keys()), count)
             plt.imshow(images[name][j], cmap = 'gray')
             plt.axis('off')
+            if (j == 0):
+                plt.title(name)
             #Count += 1 is there to change the index of the (m x n) window
             #counting from upper left to right like reading a book
             count += 1
     plt.show()
 
+def apply_FBP(images, args):
+    print('Reconstructing images with filtered back projection...')
+    recon_dict = {}
+    for i in range(len(images)):
+        recon_dict[i] = iradon(images[i], args['angles'])
+        print('\r{}%'.format(i * 100 / len(images)), end='')
+        sys.stdout.flush()
+    return recon_dict
 
 x_rays = get_x_rays(args)
 sinograms = get_sinograms(x_rays, args)
 sino_dim = sinograms[0].shape
 filters = get_filters(args, sino_dim)
 filtered_images = filter_images(sinograms, filters, args)
+recon_FBP = apply_FBP(sinograms, args)
+errors = [abs(x_rays[i] - recon_FBP[i]) for i in range(len(x_rays))]
 
 images = def_args(x_rays = x_rays, sinograms = sinograms, \
-                   filters = filters, filtered_images = filtered_images)
+                   filters = filters, filtered_images = filtered_images, \
+                  recon_FPB = recon_FBP, errors = errors)
 
-plot_examples(5, images)
+plot_examples(3, images)
 
 
 ###############################################################################
@@ -816,4 +832,3 @@ plots((final_results_4[errors_4[-1]][0], 'original'), (errors_4[0], 'iradon'), \
       (errors_4[4], 'added_back_3'))
 
 plot_collection(final_results_4[good_num], [errors_4[0], errors_4[1], errors_4[2], errors_4[3], (errors_4[4], 'added_back_4')])
-
