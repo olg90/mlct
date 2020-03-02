@@ -1,3 +1,142 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import imshow, plot, show
+import os
+import pandas as pd
+import sys
+
+from skimage.io import imread
+from skimage.transform import radon, rescale, iradon
+
+os.chdir('C://Users/Oliver/Desktop')
+
+#os.chdir('C://Users/Oliver/Desktop/Walnut')
+
+img = cv2.imread('goose.jpg', 0)
+
+img = cv2.resize(img, (512, 512))
+mask = np.random.choice([0,1], img.shape, p = [0.2, 0.8])
+filtered_image= img * mask
+
+angles = np.linspace(0, 180, 180)
+r = radon(img, angles)
+plt.imshow(r, cmap='gray')
+plt.show()
+
+q = iradon(r, angles)
+plt.imshow(q, cmap='gray')
+plt.show()
+
+
+
+
+plt.imshow(filtered_image, cmap = 'gray')
+plt.show()
+
+plt.imshow(img, cmap = 'gray')
+plt.show()
+
+
+
+
+args = def_args(
+    img_num = 100,
+    img_size = 64,
+    block_percentage = 0.05,
+    resize_size = 256,
+    angles = np.linspace(0, 180, 180),
+	#Home address
+    address = 'C:/Users/Oliver/Desktop/X-rays'
+	
+	#Work address
+	#address = 'C:/Users/Oliver.ANGELA-PC/Desktop/X-ray codes'
+)
+
+os.chdir(args['address'])
+
+
+def get_x_rays(args):
+    #Return (img_num) x_ray images reshaped to size (resize_size, resize_size)
+    print('Getting {} x-ray images and resizeing them to size {}x{}...'.format(\
+        args['img_num'],args['resize_size'],args['resize_size']))
+    resize_size = args['resize_size']
+    x_rays_dict = {}
+    filenames = [x for x in os.listdir()[:args['img_num']] if x[-5:] == '.jpeg']
+    for i, v in enumerate(filenames):
+        x_rays_dict[i] = cv2.resize(cv2.imread(v, 0), (resize_size, resize_size))
+        print('\r{}%'.format(i * 100 / len(filenames)), end='')
+        sys.stdout.flush()
+    return x_rays_dict
+
+def get_sinograms(imgs, args):
+    #Convert images to sinograms
+    print('Converting {} x-ray images to sinograms...'.format(args['img_num']))
+    sinograms_dict = {}
+    for i in range(len(imgs)):
+        sinograms_dict[i] = radon(imgs[i], args['angles'])
+        print('\r{}%'.format(i * 100 / len(imgs)), end='')
+        sys.stdout.flush()
+    return sinograms_dict
+
+def get_filters(args, sino_dim):
+
+    block_percentage = args['block_percentage']
+    filts = {}
+    size_tuple = sino_dim
+    for i in range(args['img_num']):
+        filt = np.random.choice([True, False], sino_dim,\
+            p = [(1 - block_percentage), block_percentage]).reshape(size_tuple)
+        #Add 'p' in p = []
+        filts[i] = filt
+    return filts
+
+def filter_images(images, filters, args):
+    filtered_images = {}
+    for i in range(args['img_num']):
+        filtered_image = np.zeros((images[i].shape[0], images[i].shape[1]))
+        filtered_image[filters[i]] = images[i][filters[i]]
+        filtered_images[i] = filtered_image
+    return filtered_images
+
+def plot_examples(n_examples, images):
+    #Plot (n_examples) examples from the dictionary collection of images
+    count = 1
+    for j in range(n_examples):
+        for i,name in enumerate(images.keys()):
+            plt.subplot(n_examples, len(images.keys()), count)
+            plt.imshow(images[name][j], cmap = 'gray')
+            plt.axis('off')
+            #Count += 1 is there to change the index of the (m x n) window
+            #counting from upper left to right like reading a book
+            count += 1
+    plt.show()
+
+
+x_rays = get_x_rays(args)
+sinograms = get_sinograms(x_rays, args)
+sino_dim = sinograms[0].shape
+filters = get_filters(args, sino_dim)
+filtered_images = filter_images(sinograms, filters, args)
+
+images = def_args(x_rays = x_rays, sinograms = sinograms, \
+                   filters = filters, filtered_images = filtered_images)
+
+plot_examples(5, images)
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+#
+#
+#        Old Code                Old Code               Old Code
+#
+#
+###############################################################################
+###############################################################################
+###############################################################################
+
 import os
 import matplotlib.pyplot as plt
 import cv2
@@ -41,11 +180,11 @@ def get_images(args):
     return images
 
 
-def get_filters(args, img):
+def get_filters(args):
 
     block_percentage = args['block_percentage']
     filts = {}
-    size_tuple = img[0].shape
+    size_tuple = (args['resize_size'], args['resize_size'])
     for i in range(args['img_num']):
         filt = np.random.choice([True, False], img[0].size, \
         p = [(1 - block_percentage), block_percentage]).reshape(size_tuple)
@@ -260,9 +399,11 @@ def post_network(sinograms, filters, model_3, args):
 ###############################################################################
 
 args = def_args(
-    img_num = 1000,
+    img_num = 100,
     img_size = 64,
     block_percentage = 0.05,
+    resize_size = 256,
+    angles = np.linspace(0, 180, 180),
 	#Home address
     address = 'C:/Users/Oliver/Desktop/X-rays'
 	
@@ -271,6 +412,36 @@ args = def_args(
 )
 
 os.chdir(args['address'])
+
+
+def get_x_rays(args):
+    #Return (img_num) x_ray images reshaped to size (resize_size, resize_size)
+    print('Getting {} x-ray images and resizeing them to size {}x{}...'.format(\
+        args['img_num'],args['resize_size'],args['resize_size']))
+    resize_size = args['resize_size']
+    x_rays_dict = {}
+    filenames = [x for x in os.listdir()[:args['img_num']] if x[-5:] == '.jpeg']
+    for i, v in enumerate(filenames):
+        x_rays_dict[i] = cv2.resize(cv2.imread(v, 0), (resize_size, resize_size))
+        print('\r{}%'.format(i * 100 / len(filenames)), end='')
+        sys.stdout.flush()
+    return x_rays_dict
+
+def get_sinograms(imgs, args):
+    #Convert images to sinograms
+    print('Converting {} x-ray images to sinograms...'.format(args['img_num']))
+    sinograms_dict = {}
+    for i in range(len(imgs)):
+        sinograms_dict[i] = radon(imgs[i], args['angles'])
+        print('\r{}%'.format(i * 100 / len(imgs)), end='')
+        sys.stdout.flush()
+    return sinograms_dict
+    
+
+x_rays = get_x_rays(args)
+sinograms = get_sinograms(x_rays, args)
+
+
 
 phantoms, sinograms = get_phantoms(args)
 filters = get_filters(args, sinograms)
